@@ -1,0 +1,36 @@
+{
+  "name": "ams",
+  "version": "1.0.0",
+  "description": "Advertisement Management System",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app_ad.js",
+    "build:js": "parcel build ./public/js/index.js --out-dir ./public/js --out-file bundle.js"
+  },
+  "keywords": [
+    "CMS",
+    "Backlink",
+    "Ads"
+  ],
+  "author": "Yekmaz",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "dotenv": "^16.0.3",
+    "express": "^4.19.2",
+    "express-validator": "^6.14.2",
+    "helmet": "^6.0.0",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.13.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemon": "^2.0.19",
+    "qrcode": "^1.5.3",
+    "speakeasy": "^2.0.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5"
+  }
+}
