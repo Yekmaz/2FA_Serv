@@ -5,6 +5,9 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const speakeasy = require("speakeasy");
 const qrcode = require("qrcode");
+require("dotenv").config();
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRESIN = process.env.JWT_EXPIRESIN;
 
 // User registration
 router.post("/register", async (req, res) => {
@@ -59,18 +62,24 @@ router.post("/setup-2fa", async (req, res) => {
   });
 });
 
-// User login
-router.post("/login", async (req, res) => {
-  const { username, password, token: userToken } = req.body;
-  const user = await User.findOne({ username });
+//User 2FA check
+router.post("/check-2fa", async (req, res) => {
+  const authHeader = req.headers["authorization"];
+
+  const athToken = authHeader.split(" ")[1];
+  console.log(
+    "🚀 ~ router.post ~ athToken:",
+    JSON.stringify(athToken, null, 2)
+  );
+
+  decodedToken = jwt.verify(athToken, JWT_SECRET);
+  const userId = decodedToken._id;
+
+  const { token: userToken } = req.body;
+  const user = await User.findById(userId);
 
   if (!user) {
     return res.status(400).json({ error: "User not found" });
-  }
-
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) {
-    return res.status(400).json({ error: "Invalid password" });
   }
 
   if (user.is2FAEnabled) {
@@ -85,7 +94,30 @@ router.post("/login", async (req, res) => {
     }
   }
 
-  const authToken = jwt.sign({ _id: user._id }, "SECRET_KEY");
+  res.status(200).json({
+    status: "success",
+  });
+});
+
+// User login
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username });
+
+  if (!user) {
+    return res.status(400).json({ error: "User not found" });
+  }
+
+  const validPassword = await bcrypt.compare(password, user.password);
+  if (!validPassword) {
+    return res.status(400).json({ error: "Invalid password" });
+  }
+
+  const authToken = jwt.sign(
+    { _id: user._id, userName: user.username },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRESIN }
+  );
   res.header("auth-token", authToken).json({ token: authToken });
 });
 
