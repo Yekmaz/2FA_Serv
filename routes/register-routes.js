@@ -118,7 +118,9 @@ router.post("/login", async (req, res) => {
     JWT_SECRET,
     { expiresIn: JWT_EXPIRESIN }
   );
-  res.header("auth-token", authToken).json({ token: authToken });
+  res
+    .header("auth-token", authToken)
+    .json({ token: authToken, is2FAEnabled: user.is2FAEnabled, id: user._id });
 });
 
 module.exports = router;
