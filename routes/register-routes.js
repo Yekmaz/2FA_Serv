@@ -11,7 +11,7 @@ const JWT_EXPIRESIN = process.env.JWT_EXPIRESIN;
 
 // User registration
 router.post("/register", async (req, res) => {
-  const { username, password, enable2FA } = req.body;
+  const { username, password } = req.body;
 
   try {
     const salt = await bcrypt.genSalt(10);
@@ -22,25 +22,14 @@ router.post("/register", async (req, res) => {
       password: hashedPassword,
     });
 
-    // If user opts to enable 2FA during registration
-    if (enable2FA) {
-      const secret = speakeasy.generateSecret({ length: 20 });
-      newUser.twoFASecret = secret.base32;
-      newUser.is2FAEnabled = true;
+    const savedUser = await newUser.save();
 
-      // Generate QR code for 2FA setup
-      qrcode.toDataURL(secret.otpauth_url, async (err, data_url) => {
-        if (err) {
-          return res.status(500).json({ error: "Error generating QR code" });
-        }
-
-        const savedUser = await newUser.save();
-        return res.json({ user: savedUser, qrCodeUrl: data_url });
-      });
-    } else {
-      const savedUser = await newUser.save();
-      return res.json({ user: savedUser });
-    }
+    const authToken = jwt.sign(
+      { _id: savedUser._id, userName: savedUser.username },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRESIN }
+    );
+    return res.json({ token: authToken, user: savedUser });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -53,7 +42,6 @@ router.post("/setup-2fa", async (req, res) => {
 
   const secret = speakeasy.generateSecret({ length: 20 });
   user.twoFASecret = secret.base32;
-  user.is2FAEnabled = true;
 
   await user.save();
 
@@ -67,15 +55,12 @@ router.post("/check-2fa", async (req, res) => {
   const authHeader = req.headers["authorization"];
 
   const athToken = authHeader.split(" ")[1];
-  console.log(
-    "🚀 ~ router.post ~ athToken:",
-    JSON.stringify(athToken, null, 2)
-  );
 
   decodedToken = jwt.verify(athToken, JWT_SECRET);
   const userId = decodedToken._id;
 
-  const { token: userToken } = req.body;
+  const { token: userToken, enable } = req.body;
+  console.log("🚀 ~ router.post ~ enable:", enable);
   const user = await User.findById(userId);
 
   if (!user) {
@@ -94,6 +79,12 @@ router.post("/check-2fa", async (req, res) => {
     }
   }
 
+  if (enable) {
+    const user2 = await User.findByIdAndUpdate(userId, {
+      is2FAEnabled: enable,
+    });
+    console.log("🚀 ~ router.post ~ user2:", user2);
+  }
   res.status(200).json({
     status: "success",
   });
